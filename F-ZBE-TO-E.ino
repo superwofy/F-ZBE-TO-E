@@ -20,7 +20,7 @@
   Adjustment section. Configure board here
 *********************************************************************************************************************************************************************/
 
-#pragma GCC optimize ("-O3")                                                                    // Max compiler optimisation level.
+#pragma GCC optimize ("-Ofast")                                                                 // Max compiler optimisation level.
 MCP_CAN CAN0(17);                                                                               // CS pin. Adapt to your board
 #define CAN0_INT 7                                                                              // INT pin. Adapt to your board
 #define DEBUG_MODE 0                                                                            // Toggle serial debug messages
@@ -71,7 +71,12 @@ void loop()
 {
   if(!digitalRead(CAN0_INT)) {                                                                  // If INT pin is pulled low, read receive buffer
     CAN0.readMsgBuf(&rxId, &len, rxBuf);
-    if (rxId == 0x273){
+    if (rxId == 0x4E2){
+      CAN0.sendMsgBuf(0x560, 8, f_wakeup);
+      #if DEBUG_MODE
+        Serial.println("Sent wake-up message");
+      #endif
+    } else {                                                                                    // As per filters if not 0x4E2 rxId must be 0x273
       zbe_response[2] = rxBuf[7];
       CAN0.sendMsgBuf(0x277, 4, zbe_response);                                                  // Acknowledge must be sent three times
       CAN0.sendMsgBuf(0x277, 4, zbe_response);
@@ -80,11 +85,6 @@ void loop()
         sprintf(dbgString, "Sent ZBE response to CIC with counter: 0x%X\n", rxBuf[7]);
         Serial.print(dbgString);
       #endif
-    } else {                                                                                    // As per filters if not 0x273 rxId must be 0x4E2
-        CAN0.sendMsgBuf(0x560, 8, f_wakeup);
-        #if DEBUG_MODE
-          Serial.println("Sent wake-up message");
-        #endif
     }
   } 
 }
